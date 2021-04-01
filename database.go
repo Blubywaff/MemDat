@@ -8,7 +8,7 @@ import (
 type Document map[string]interface{}
 
 type IndexElement struct {
-	Document *Document
+	Document Document
 	Value    string
 }
 
@@ -38,17 +38,21 @@ func (i Index) findPlace(value string) int {
 }
 
 func (i Index) contains(value string) bool {
-	return i.Index[i.findPlace(value)].Value == value
+	p := i.findPlace(value)
+	if p == -1 {
+		return false
+	}
+	return i.Index[p].Value == value
 }
 
-func (i Index) add(document *Document) bool {
-	value := (*document)[i.Field].(string)
+func (i Index) add(document Document) bool {
+	value := (document)[i.Field].(string)
 	place := i.findPlace(value)
 	i.Index = append(append(i.Index[0:place], IndexElement{document, value}), i.Index[place:]...)
 	return true
 }
 
-func (i Index) findDocument(value string) *Document {
+func (i Index) findDocument(value string) Document {
 	return i.Index[i.findPlace(value)].Document
 }
 
@@ -56,16 +60,16 @@ func (d Database) hasIndex(field string) bool {
 	return d.findIndexIndex(field) != -1
 }
 
-func (d Database) findDocumentById(objectId string) *Document {
+func (d Database) findDocumentById(objectId string) Document {
 	return d.findIndex("ObjectId").findDocument(objectId)
 }
 
-func (d Database) findIndex(field string) *Index {
+func (d Database) findIndex(field string) Index {
 	ii := d.findIndexIndex(field)
 	if ii == -1 {
-		return nil
+		return Index{}
 	}
-	return &d.Indexes[ii]
+	return d.Indexes[ii]
 }
 
 func (d Database) findIndexIndex(field string) int {
@@ -83,12 +87,12 @@ func (d Database) addIndex(field string) bool {
 	}
 	d.Indexes = append(d.Indexes, Index{field, make([]IndexElement, len(d.Documents))})
 	for _, document := range d.Documents {
-		d.addDocumentToIndex(field, &document)
+		d.addDocumentToIndex(field, document)
 	}
 	return true
 }
 
-func (d Database) addDocumentToIndex(field string, document *Document) bool {
+func (d Database) addDocumentToIndex(field string, document Document) bool {
 	if !d.hasIndex(field) {
 		return false
 	}
@@ -98,7 +102,7 @@ func (d Database) addDocumentToIndex(field string, document *Document) bool {
 func (d Database) addDocument(document Document) {
 	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
-		d.addDocumentToIndex(s, &document)
+		d.addDocumentToIndex(s, document)
 	}
 }
 
@@ -115,11 +119,11 @@ func (d Database) generateId() string {
 	return id
 }
 
-func newDatabase() *Database {
+func newDatabase() Database {
 	database := Database{
 		make([]Document, 0),
 		make([]Index, 0),
 	}
 	database.addIndex("ObjectId")
-	return &database
+	return database
 }
