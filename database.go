@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 )
 
 type Document map[string]interface{}
 
 type IndexElement struct {
-	Document Document
+	Document *Document
 	Value    string
 }
 
@@ -22,6 +23,8 @@ type Database struct {
 	Indexes   []Index
 }
 
+// INTERNAL
+// Finds index of value in the index
 func (i Index) findPlace(value string) int {
 	bot := 0
 	top := len(i.Index)
@@ -37,6 +40,8 @@ func (i Index) findPlace(value string) int {
 	return cur
 }
 
+// INTERNAL
+// checks if a specific value exists
 func (i Index) contains(value string) bool {
 	p := i.findPlace(value)
 	if p == -1 {
@@ -45,34 +50,47 @@ func (i Index) contains(value string) bool {
 	return i.Index[p].Value == value
 }
 
-func (i Index) add(document Document) bool {
-	value := (document)[i.Field].(string)
-	place := i.findPlace(value)
+// INTERNAL
+// adds document to index
+// TODO enforce unique value
+func (i Index) add(document *Document) bool {
+	value := (*document)[i.Field].(string)
+	place := int(math.Max(float64(i.findPlace(value)), 0))
 	i.Index = append(append(i.Index[0:place], IndexElement{document, value}), i.Index[place:]...)
 	return true
 }
 
-func (i Index) findDocument(value string) Document {
+// INTERNAL
+// gets Document which has the specific value
+func (i Index) findDocument(value string) *Document {
 	return i.Index[i.findPlace(value)].Document
 }
 
+// INTERNAL
+// Shortcut check for if an index exists
 func (d Database) hasIndex(field string) bool {
 	return d.findIndexIndex(field) != -1
 }
 
-func (d Database) findDocumentById(objectId string) Document {
+// INTERNAL
+// Shortcut for searching for a document with known ObjectId
+func (d *Database) findDocumentById(objectId string) *Document {
 	return d.findIndex("ObjectId").findDocument(objectId)
 }
 
-func (d Database) findIndex(field string) Index {
+// INTERNAL
+// Gets specific index based on its field
+func (d *Database) findIndex(field string) *Index {
 	ii := d.findIndexIndex(field)
 	if ii == -1 {
-		return Index{}
+		return nil
 	}
-	return d.Indexes[ii]
+	return &d.Indexes[ii]
 }
 
-func (d Database) findIndexIndex(field string) int {
+// INTERNAL
+// Gets the index (in Index array) of the index that corresponds to field
+func (d *Database) findIndexIndex(field string) int {
 	for i, index := range d.Indexes {
 		if index.Field == field {
 			return i
@@ -81,49 +99,64 @@ func (d Database) findIndexIndex(field string) int {
 	return -1
 }
 
-func (d Database) addIndex(field string) bool {
+// INTERNAL
+// For use by the database to handle creation of new indexes
+func (d *Database) addIndex(field string) bool {
 	if d.hasIndex(field) {
 		return false
 	}
 	d.Indexes = append(d.Indexes, Index{field, make([]IndexElement, len(d.Documents))})
 	for _, document := range d.Documents {
-		d.addDocumentToIndex(field, document)
+		d.addDocumentToIndex(field, &document)
 	}
 	return true
 }
 
-func (d Database) addDocumentToIndex(field string, document Document) bool {
+// INTERNAL
+// Adds the document to the databases indexes
+func (d *Database) addDocumentToIndex(field string, document *Document) bool {
 	if !d.hasIndex(field) {
 		return false
 	}
+	fmt.Println("")
 	return d.findIndex(field).add(document)
 }
 
-func (d Database) addDocument(document Document) {
+// INTERNAL
+// For handling adding to the database after the input has been parsed
+func (d *Database) addDocument(document Document) {
 	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
-		d.addDocumentToIndex(s, document)
+		d.addDocumentToIndex(s, &document)
 	}
 }
 
-func (d Database) add(data interface{}) {
-	document := Document{"ObjectId": d.generateId()}
-	d.addDocument(document)
-}
-
-func (d Database) generateId() string {
+// INTERNAL
+// Generates 32 len hexadecimal ids similar to uuid
+// TODO reflection for other fields
+func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
-		id = fmt.Sprintf("%x", rand.Intn(4294967296))
+		id = fmt.Sprintf("%x%x%x%x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
 }
 
-func newDatabase() Database {
+// PUBLIC
+// for use by others to add to the database
+// may change to internal to create naming and regularity among public functions
+func (d *Database) add(data interface{}) {
+	document := Document{"ObjectId": d.generateId()}
+	d.addDocument(document)
+}
+
+// PUBLIC
+// Creates new database
+func newDatabase() *Database {
 	database := Database{
 		make([]Document, 0),
 		make([]Index, 0),
 	}
 	database.addIndex("ObjectId")
-	return database
+	return &database
 }
