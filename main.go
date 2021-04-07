@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Comment struct {
@@ -21,8 +22,12 @@ type FullComment struct {
 	Replies []FullComment
 }
 
+func (c *Comment) MemDatConvert() string {
+	return "{\n\tID: " + c.ID + ",\n\tBody: " + c.Body + ",\n\tReplies: [\n\t\t" + strings.Join(c.Replies[:], ",\n\t\t") + "\n\t]\n}"
+}
+
 func main() {
-	//fmt.Print(FullComment{"ee", "no u", []string{"hello", "fuck you"}})
+	fmt.Print((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}).MemDatConvert())
 
 	database := *newDatabase()
 	database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}})

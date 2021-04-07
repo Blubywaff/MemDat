@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"reflect"
 )
 
 type Document map[string]interface{}
@@ -21,6 +22,11 @@ type Index struct {
 type Database struct {
 	Documents []Document
 	Indexes   []Index
+}
+
+type MemDatCompatible interface {
+	// Converts type to json format without using reflection ideally for efficiency
+	MemDatConvert() string
 }
 
 // INTERNAL
@@ -133,7 +139,6 @@ func (d *Database) addDocument(document Document) {
 
 // INTERNAL
 // Generates 32 len hexadecimal ids similar to uuid
-// TODO reflection for other fields
 func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
@@ -145,8 +150,21 @@ func (d *Database) generateId() string {
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
+// TODO reflection for other fields
 func (d *Database) add(data interface{}) {
 	document := Document{"ObjectId": d.generateId()}
+	//mdc, ok := data.(MemDatCompatible)
+	//if ok {
+	//parse := mdc.MemDatConvert()
+
+	//}
+	ref := reflect.ValueOf(&data).Elem()
+	for i := 0; i < ref.NumField(); i++ {
+		//val := ref.Field(i)
+		typeVal := ref.Type().Field(i)
+		tag := typeVal.Tag
+		fmt.Println(tag.Get("memdat"))
+	}
 	d.addDocument(document)
 }
 
