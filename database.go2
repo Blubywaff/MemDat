@@ -149,6 +149,36 @@ func (d *Database) generateId() string {
 }
 
 // INTERNAL
+// Removes newlines spaces and tabs from input
+func jsonFormat(str string) string {
+	quote := false
+	var removes []int
+	for i, _ := range str {
+		if str[i] == '"' {
+			quote = !quote
+			continue
+		}
+		if str[i] == ' ' || str[i] == '\n' || str[i] == '\t' {
+			removes = append(removes, i)
+		}
+	}
+	var b strings.Builder
+	b.Grow(len(str) - len(removes))
+	for i, remove := range removes {
+		var s int
+		e := remove
+		if i != 0 {
+			s = removes[i]
+		}
+		if i != len(removes) - 1 {
+			e = len(str)
+		}
+		_, _ = fmt.Fprint(&b, str[s:e])
+	}
+	return b.String()
+}
+
+// INTERNAL
 // Checks if input json is valid
 // TODO finish this
 func jsonValid(str string) bool {
@@ -195,10 +225,10 @@ func jsonValid(str string) bool {
 				}
 			}
 		}
-		if !skip {
+		if !skip && !quote{
 			for _, char := range escChars {
 				if str[i] == char {
-
+					return false
 				}
 			}
 		}
@@ -209,6 +239,10 @@ func jsonValid(str string) bool {
 // INTERNAL
 // Prepares input jsons for conversion to database object
 func jsonDeparse(str string) string {
+	f := jsonFormat(str)
+	if !jsonValid(f) {
+		return ""
+	}
 
 }
 

@@ -28,10 +28,14 @@ func (c *Comment) MemDatConvert() string {
 }
 
 func main() {
-	fmt.Println((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}).MemDatConvert())
+	fmt.Println((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}).MemDatConvert())
+	fmt.Println("e\n\r\te")
+	fmt.Println(strings.Contains("e\n\te", "\r"))
 
 	var data interface{}
-	fmt.Println(json.Unmarshal([]byte("{\"EE\": [\"\\\"\\\"\\\"\\\"\"]}"), &data))
+	str := "{\n\"EE\": [\n\t\"\\\"\\\"\\\"\\n\\\"\\\"\"\n\t]\n}"
+	fmt.Println(str)
+	fmt.Println(json.Unmarshal([]byte(str), &data))
 	fmt.Println(data)
 	data = nil
 	fmt.Println("{\"EE\": [\"\\\"\\\\\\\"\"]}")
@@ -42,7 +46,7 @@ func main() {
 	//database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}})
 	//fmt.Println(database.Documents[0])
 
-	fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}))
+	fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
