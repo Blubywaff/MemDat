@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -23,15 +24,23 @@ type FullComment struct {
 }
 
 func (c *Comment) MemDatConvert() string {
-	return "{\n\tID: " + c.ID + ",\n\tBody: " + c.Body + ",\n\tReplies: [\n\t\t" + strings.Join(c.Replies[:], ",\n\t\t") + "\n\t]\n}"
+	return "{\n\t\"ID\": " + c.ID + ",\n\t\"Body\": " + c.Body + ",\n\t\"Replies\": [\n\t\t\"" + strings.Join(c.Replies[:], "\",\n\t\t\"") + "\"\n\t]\n}"
 }
 
 func main() {
-	fmt.Print((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}).MemDatConvert())
+	fmt.Println((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}).MemDatConvert())
 
-	database := *newDatabase()
-	database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}})
-	fmt.Println(database.Documents[0])
+	var data interface{}
+	fmt.Println(json.Unmarshal([]byte("{\"EE\": [\"\\\"\\\"\\\"\\\"\"]}"), &data))
+	fmt.Println(data)
+	data = nil
+	fmt.Println("{\"EE\": [\"\\\"\\\\\\\"\"]}")
+	fmt.Println(json.Unmarshal([]byte("{\"EE\": [\"\\\\\"]}"), &data))
+	fmt.Println(data)
+
+	//database := *newDatabase()
+	//database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}})
+	//fmt.Println(database.Documents[0])
 
 	fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}}))
 

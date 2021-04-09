@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
+	"strings"
 )
 
 type Document map[string]interface{}
@@ -147,17 +148,81 @@ func (d *Database) generateId() string {
 	return id
 }
 
+// INTERNAL
+// Checks if input json is valid
+// TODO finish this
+func jsonValid(str string) bool {
+	secChars := map[uint8]int{
+		'{': 0,
+		'}': 0,
+		'[': 0,
+		']': 0,
+	}
+	escChars := []uint8{
+		'\b',
+		'\f',
+		'\n',
+		'\r',
+		'\t',
+		'\\',
+	}
+	quote := false
+	for i := 0; i < len(str); i++ {
+		skip := false
+		for c, _ := range secChars {
+			if str[i] == c {
+				secChars[c]++
+				if secChars['}'] > secChars['{'] || secChars[']'] > secChars['['] {
+					// More Closes than Opens
+					return false
+				}
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			if str[i] == '"' {
+				if quote {
+					if str[i-1] == '\\' {
+						continue
+					}
+					quote = false
+					if str[i+1] != ',' && str[i+1] != ':' {
+						return false
+					}
+				} else {
+					quote = true
+				}
+			}
+		}
+		if !skip {
+			for _, char := range escChars {
+				if str[i] == char {
+
+				}
+			}
+		}
+	}
+	return str != ""
+}
+
+// INTERNAL
+// Prepares input jsons for conversion to database object
+func jsonDeparse(str string) string {
+
+}
+
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
 // TODO reflection for other fields
 func (d *Database) add(data interface{}) {
 	document := Document{"ObjectId": d.generateId()}
-	//mdc, ok := data.(MemDatCompatible)
-	//if ok {
-	//parse := mdc.MemDatConvert()
-
-	//}
+	mdc, ok := data.(MemDatCompatible)
+	if ok {
+		parse := mdc.MemDatConvert()
+		parse := jsonDeparse(parse)
+	}
 	ref := reflect.ValueOf(&data).Elem()
 	for i := 0; i < ref.NumField(); i++ {
 		//val := ref.Field(i)
