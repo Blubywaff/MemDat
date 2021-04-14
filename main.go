@@ -1,16 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"strings"
 )
 
 type Comment struct {
 	CommentStem
-	Replies []string `json:"Replies" bson:"Replies"`
+	Replies []string `json:"Replies" bson:"Replies" memdat:"Replies"`
 }
 
 type CommentStem struct {
@@ -28,30 +25,35 @@ func (c *Comment) MemDatConvert() string {
 }
 
 func main() {
-	fmt.Println((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}).MemDatConvert())
-	fmt.Println("e\n\r\te")
-	fmt.Println(strings.Contains("e\n\te", "\r"))
+	/*
+		fmt.Println((&Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}).MemDatConvert())
+		fmt.Println("e\n\r\te")
+		fmt.Println(strings.Contains("e\n\te", "\r"))
 
-	var data interface{}
-	str := "{\n\"EE\": [\n\t\"\\\"\\\"\\\"\\n\\\"\\\"\"\n\t]\n}"
-	fmt.Println(str)
-	fmt.Println(json.Unmarshal([]byte(str), &data))
-	fmt.Println(data)
-	data = nil
-	fmt.Println("{\"EE\": [\"\\\"\\\\\\\"\"]}")
-	fmt.Println(json.Unmarshal([]byte("{\"EE\": [\"\\\\\"]}"), &data))
-	fmt.Println(data)
+		var data interface{}
+		str := "{\n\"EE\": [\n\t\"\\\"\\\"\\\"\\n\\\"\\\"\"\n\t]\n}"
+		fmt.Println(str)
+		fmt.Println(json.Unmarshal([]byte(str), &data))
+		fmt.Println(data)
+		data = nil
+		fmt.Println("{\"EE\": [\"\\\"\\\\\\\"\"]}")
+		fmt.Println(json.Unmarshal([]byte("{\"EE\": [\"\\\\\"]}"), &data))
+		fmt.Println(data)
+	*/
 
-	//database := *newDatabase()
-	//database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "fuck you"}})
-	//fmt.Println(database.Documents[0])
+	database := *newDatabase()
+	database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "i agree"}})
+	fmt.Println(database.Documents[0])
 
-	fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}))
+	//database.add([]string{"Hello", "21"})
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprint(w, "EE")
-		fmt.Println(req.Header)
-	})
-	log.Fatal(http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) { mux.ServeHTTP(w, req) })))
+	//fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}))
+	/*
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+			fmt.Fprint(w, "EE")
+			fmt.Println(req.Header)
+		})
+		log.Fatal(http.ListenAndServe(":80", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) { mux.ServeHTTP(w, req) })))
+	*/
 }

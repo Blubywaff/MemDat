@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
-	"strings"
 )
 
 type Document map[string]interface{}
@@ -150,6 +149,7 @@ func (d *Database) generateId() string {
 
 // INTERNAL
 // Removes newlines spaces and tabs from input
+/*
 func jsonFormat(str string) string {
 	quote := false
 	var removes []int
@@ -177,10 +177,12 @@ func jsonFormat(str string) string {
 	}
 	return b.String()
 }
+*/
 
 // INTERNAL
 // Checks if input json is valid
 // TODO finish this
+/*
 func jsonValid(str string) bool {
 	secChars := map[uint8]int{
 		'{': 0,
@@ -245,6 +247,7 @@ func jsonDeparse(str string) string {
 	}
 
 }
+*/
 
 // PUBLIC
 // for use by others to add to the database
@@ -252,19 +255,159 @@ func jsonDeparse(str string) string {
 // TODO reflection for other fields
 func (d *Database) add(data interface{}) {
 	document := Document{"ObjectId": d.generateId()}
-	mdc, ok := data.(MemDatCompatible)
-	if ok {
+	//mdc, ok := data.(MemDatCompatible)
+	/*if ok {
 		parse := mdc.MemDatConvert()
 		parse := jsonDeparse(parse)
+	}*/
+
+	fmt.Println(convertStruct(data))
+
+	/*
+		ref := reflect.ValueOf(&data).Elem().Elem()
+		fmt.Println(ref.Kind())
+		//fmt.Println(ref.Elem().Kind())
+		for i := 0; i < ref.NumField(); i++ {
+			val := ref.Field(i)
+			switch val.Kind() {
+			case reflect.Struct:
+
+			}
+			typeVal := ref.Type().Field(i)
+			tag := typeVal.Tag
+			fmt.Println("val:", val)
+			fmt.Println("isArray:", val.Kind() == reflect.Struct)
+			fmt.Println("typeVal:", typeVal.Type)
+			fmt.Println("tags:", tag)
+		}
+	*/
+	d.addDocument(document)
+}
+
+// INTERNAL
+// Converts input from add into document for use by database
+/*
+func convertInterface(data interface{}) Document {
+	fmt.Println("Convert Interface")
+	document := Document{}
+	ref := reflect.ValueOf(data)
+	var refE reflect.Value
+	fmt.Println("ref kind:", ref.Kind())
+	if ref.Kind() == reflect.Struct {
+		convertStruct(data)
+	} else if ref.Kind() == reflect.Interface {
+		refE = ref.Elem()
+		fmt.Println("refE kind:", refE.Kind())
 	}
-	ref := reflect.ValueOf(&data).Elem()
+	fmt.Println("Ref Kind (ac):", ref.Kind())
 	for i := 0; i < ref.NumField(); i++ {
-		//val := ref.Field(i)
+		fmt.Println("Check field:", i)
+		val := ref.Field(i)
+		fmt.Println("val kind:", val.Kind())
 		typeVal := ref.Type().Field(i)
 		tag := typeVal.Tag
-		fmt.Println(tag.Get("memdat"))
+		switch val.Kind() {
+		case reflect.Struct:
+			doc := convertStruct(reflect.Indirect(val))
+			tagName := tag.Get("memdat")
+			if tagName != "" {
+				document[tagName] = doc
+				continue
+			}
+			document[typeVal.Name] = doc
+			continue
+		}
+		fmt.Println("val:", val)
+		fmt.Println("isArray:", val.Kind() == reflect.Struct)
+		fmt.Println("typeVal:", typeVal.Type)
+		fmt.Println("tags:", tag)
 	}
-	d.addDocument(document)
+	fmt.Println("End Convert Struct")
+	return document
+}
+*/
+
+// INTERNAL
+// Handles structs for the interface converter
+func convertStruct(data interface{}) Document {
+	fmt.Println("Convert Struct:", data)
+	document := Document{}
+
+	ref := reflect.ValueOf(data)
+	fmt.Println("ref kind:", ref.Kind(), ref.Type())
+
+	for i := 0; i < ref.NumField(); i++ {
+		fmt.Println("checking:", i)
+
+		val := ref.Field(i)
+		typeVal := ref.Type().Field(i)
+		tag := typeVal.Tag
+
+		fmt.Println("Val Details:")
+		fmt.Println("\tVal Interface:", val.Interface())
+		fmt.Println("\tRereflect kind:", reflect.ValueOf(val.Interface()).Type())
+		fmt.Println("\tVal Indirect:", reflect.Indirect(val))
+
+		fmt.Println("Field Kind:", val.Kind())
+
+		fmt.Println("Field Kind ap:", reflect.Indirect(val).Kind())
+
+		switch val.Kind() {
+		case reflect.Struct:
+			doc := convertStruct(val.Interface())
+			tagName := tag.Get("memdat")
+			if tagName != "" {
+				document[tagName] = doc
+				continue
+			}
+			document[typeVal.Name] = doc
+			continue
+		case reflect.Slice:
+			doc := convertSlice(val.Interface())
+			tagName := tag.Get("memdat")
+			if tagName != "" {
+				document[tagName] = doc
+				continue
+			}
+			document[typeVal.Name] = doc
+			continue
+		default:
+			doc := convertPrimitive(val.Interface())
+			tagName := tag.Get("memdat")
+			if tagName != "" {
+				document[tagName] = doc
+				continue
+			}
+			document[typeVal.Name] = doc
+			continue
+		}
+
+	}
+
+	fmt.Println("End Convert Struct")
+	return document
+}
+
+// INTERNAL
+// For use with Convert Struct to convert slices
+func convertSlice(data interface{}) Document {
+	fmt.Println("Convert Slice:", data)
+	document := Document{}
+
+	fmt.Println("End Convert Slice")
+	return document
+}
+
+// INTERNAL
+// For use with converters to convert int, float, double, bool, string
+func convertPrimitive(data interface{}) interface{} {
+	fmt.Println("Convert Primitive:", data)
+	//document := Document{}
+
+	fmt.Println(reflect.ValueOf(data).Type())
+
+	fmt.Println("End Convert Primitive")
+	return data
 }
 
 // PUBLIC
