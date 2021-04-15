@@ -24,11 +24,6 @@ type Database struct {
 	Indexes   []Index
 }
 
-type MemDatCompatible interface {
-	// Converts type to json format without using reflection ideally for efficiency
-	MemDatConvert() Document
-}
-
 // INTERNAL
 // Finds index of value in the index
 func (i Index) findPlace(value string) int {
@@ -68,6 +63,7 @@ func (i Index) add(document *Document) bool {
 
 // INTERNAL
 // gets Document which has the specific value
+// TODO needs improvement
 func (i Index) findDocument(value string) *Document {
 	return i.Index[i.findPlace(value)].Document
 }
@@ -82,6 +78,12 @@ func (d Database) hasIndex(field string) bool {
 // Shortcut for searching for a document with known ObjectId
 func (d *Database) findDocumentById(objectId string) *Document {
 	return d.findIndex("ObjectId").findDocument(objectId)
+}
+
+// INTERNAL
+// Searches for document
+func (d *Database) findDocument(key string, value string) *Document {
+
 }
 
 // INTERNAL
@@ -144,16 +146,6 @@ func (d *Database) generateId() string {
 		id = fmt.Sprintf("%x%x%x%x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
-}
-
-// PUBLIC
-// for use by others to add to the database
-// may change to internal to create naming and regularity among public functions
-// TODO ensure document convert succeeded
-func (d *Database) add(data interface{}) {
-	document := convertStruct(data)
-	document["ObjectId"] = d.generateId()
-	d.addDocument(document)
 }
 
 // INTERNAL
@@ -231,4 +223,15 @@ func newDatabase() *Database {
 	}
 	database.addIndex("ObjectId")
 	return &database
+}
+
+// PUBLIC
+// for use by others to add to the database
+// may change to internal to create naming and regularity among public functions
+// TODO ensure document convert succeeded
+func (d *Database) add(data interface{}) {
+	document := convertStruct(data)
+	document["ObjectId"] = d.generateId()
+
+	d.addDocument(document)
 }

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"strings"
+	"time"
 )
 
 type Comment struct {
@@ -18,10 +18,6 @@ type CommentStem struct {
 type FullComment struct {
 	CommentStem
 	Replies []FullComment
-}
-
-func (c *Comment) MemDatConvert() string {
-	return "{\n\t\"ID\": " + c.ID + ",\n\t\"Body\": " + c.Body + ",\n\t\"Replies\": [\n\t\t\"" + strings.Join(c.Replies[:], "\",\n\t\t\"") + "\"\n\t]\n}"
 }
 
 func main() {
@@ -41,10 +37,18 @@ func main() {
 		fmt.Println(data)
 	*/
 
+	start := time.Now().UnixNano()
+
 	database := *newDatabase()
-	database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "i agree"}})
-	database.add([]int{1, 2, 3})
-	fmt.Println(database.Documents[1])
+	for i := 0; i < 1; i++ {
+		database.add(Comment{CommentStem{database.generateId(), database.generateId()}, []string{database.generateId(), database.generateId()}})
+	}
+	//database.add([]int{1, 2, 3})
+	fmt.Println(database.Documents[0])
+	database.Documents[0]["new"] = "new"
+	fmt.Println(database.Documents[0])
+
+	fmt.Println(time.Now().UnixNano() - start)
 
 	//database.add([]string{"Hello", "21"})
 
