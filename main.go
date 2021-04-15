@@ -43,6 +43,7 @@ func main() {
 
 	database := *newDatabase()
 	database.add(Comment{CommentStem{"ee", "no u"}, []string{"hello", "i agree"}})
+	database.add(struct{ List []int }{[]int{1, 2, 3}})
 	fmt.Println(database.Documents[0])
 
 	//database.add([]string{"Hello", "21"})

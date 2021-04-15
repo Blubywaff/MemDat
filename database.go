@@ -384,18 +384,22 @@ func convertStruct(data interface{}) Document {
 
 	}
 
-	fmt.Println("End Convert Struct")
+	fmt.Println("End Convert Struct", document)
 	return document
 }
 
 // INTERNAL
 // For use with Convert Struct to convert slices
-func convertSlice(data interface{}) Document {
+func convertSlice(data interface{}) []interface{} {
 	fmt.Println("Convert Slice:", data)
-	document := Document{}
+	var items []interface{}
 
-	fmt.Println("End Convert Slice")
-	return document
+	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
+		items = append(items, reflect.ValueOf(data).Index(i))
+	}
+
+	fmt.Println("End Convert Slice", items)
+	return items
 }
 
 // INTERNAL
@@ -406,7 +410,7 @@ func convertPrimitive(data interface{}) interface{} {
 
 	fmt.Println(reflect.ValueOf(data).Type())
 
-	fmt.Println("End Convert Primitive")
+	fmt.Println("End Convert Primitive", data)
 	return data
 }
 
