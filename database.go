@@ -26,7 +26,7 @@ type Database struct {
 
 type MemDatCompatible interface {
 	// Converts type to json format without using reflection ideally for efficiency
-	MemDatConvert() string
+	MemDatConvert() Document
 }
 
 // INTERNAL
@@ -124,7 +124,6 @@ func (d *Database) addDocumentToIndex(field string, document *Document) bool {
 	if !d.hasIndex(field) {
 		return false
 	}
-	fmt.Println("")
 	return d.findIndex(field).add(document)
 }
 
@@ -147,210 +146,28 @@ func (d *Database) generateId() string {
 	return id
 }
 
-// INTERNAL
-// Removes newlines spaces and tabs from input
-/*
-func jsonFormat(str string) string {
-	quote := false
-	var removes []int
-	for i, _ := range str {
-		if str[i] == '"' {
-			quote = !quote
-			continue
-		}
-		if str[i] == ' ' || str[i] == '\n' || str[i] == '\t' {
-			removes = append(removes, i)
-		}
-	}
-	var b strings.Builder
-	b.Grow(len(str) - len(removes))
-	for i, remove := range removes {
-		var s int
-		e := remove
-		if i != 0 {
-			s = removes[i]
-		}
-		if i != len(removes) - 1 {
-			e = len(str)
-		}
-		_, _ = fmt.Fprint(&b, str[s:e])
-	}
-	return b.String()
-}
-*/
-
-// INTERNAL
-// Checks if input json is valid
-// TODO finish this
-/*
-func jsonValid(str string) bool {
-	secChars := map[uint8]int{
-		'{': 0,
-		'}': 0,
-		'[': 0,
-		']': 0,
-	}
-	escChars := []uint8{
-		'\b',
-		'\f',
-		'\n',
-		'\r',
-		'\t',
-		'\\',
-	}
-	quote := false
-	for i := 0; i < len(str); i++ {
-		skip := false
-		for c, _ := range secChars {
-			if str[i] == c {
-				secChars[c]++
-				if secChars['}'] > secChars['{'] || secChars[']'] > secChars['['] {
-					// More Closes than Opens
-					return false
-				}
-				skip = true
-				break
-			}
-		}
-		if !skip {
-			if str[i] == '"' {
-				if quote {
-					if str[i-1] == '\\' {
-						continue
-					}
-					quote = false
-					if str[i+1] != ',' && str[i+1] != ':' {
-						return false
-					}
-				} else {
-					quote = true
-				}
-			}
-		}
-		if !skip && !quote{
-			for _, char := range escChars {
-				if str[i] == char {
-					return false
-				}
-			}
-		}
-	}
-	return str != ""
-}
-
-// INTERNAL
-// Prepares input jsons for conversion to database object
-func jsonDeparse(str string) string {
-	f := jsonFormat(str)
-	if !jsonValid(f) {
-		return ""
-	}
-
-}
-*/
-
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
-// TODO reflection for other fields
+// TODO ensure document convert succeeded
 func (d *Database) add(data interface{}) {
-	document := Document{"ObjectId": d.generateId()}
-	//mdc, ok := data.(MemDatCompatible)
-	/*if ok {
-		parse := mdc.MemDatConvert()
-		parse := jsonDeparse(parse)
-	}*/
-
-	fmt.Println(convertStruct(data))
-
-	/*
-		ref := reflect.ValueOf(&data).Elem().Elem()
-		fmt.Println(ref.Kind())
-		//fmt.Println(ref.Elem().Kind())
-		for i := 0; i < ref.NumField(); i++ {
-			val := ref.Field(i)
-			switch val.Kind() {
-			case reflect.Struct:
-
-			}
-			typeVal := ref.Type().Field(i)
-			tag := typeVal.Tag
-			fmt.Println("val:", val)
-			fmt.Println("isArray:", val.Kind() == reflect.Struct)
-			fmt.Println("typeVal:", typeVal.Type)
-			fmt.Println("tags:", tag)
-		}
-	*/
+	document := convertStruct(data)
+	document["ObjectId"] = d.generateId()
 	d.addDocument(document)
 }
 
 // INTERNAL
-// Converts input from add into document for use by database
-/*
-func convertInterface(data interface{}) Document {
-	fmt.Println("Convert Interface")
-	document := Document{}
-	ref := reflect.ValueOf(data)
-	var refE reflect.Value
-	fmt.Println("ref kind:", ref.Kind())
-	if ref.Kind() == reflect.Struct {
-		convertStruct(data)
-	} else if ref.Kind() == reflect.Interface {
-		refE = ref.Elem()
-		fmt.Println("refE kind:", refE.Kind())
-	}
-	fmt.Println("Ref Kind (ac):", ref.Kind())
-	for i := 0; i < ref.NumField(); i++ {
-		fmt.Println("Check field:", i)
-		val := ref.Field(i)
-		fmt.Println("val kind:", val.Kind())
-		typeVal := ref.Type().Field(i)
-		tag := typeVal.Tag
-		switch val.Kind() {
-		case reflect.Struct:
-			doc := convertStruct(reflect.Indirect(val))
-			tagName := tag.Get("memdat")
-			if tagName != "" {
-				document[tagName] = doc
-				continue
-			}
-			document[typeVal.Name] = doc
-			continue
-		}
-		fmt.Println("val:", val)
-		fmt.Println("isArray:", val.Kind() == reflect.Struct)
-		fmt.Println("typeVal:", typeVal.Type)
-		fmt.Println("tags:", tag)
-	}
-	fmt.Println("End Convert Struct")
-	return document
-}
-*/
-
-// INTERNAL
 // Handles structs for the interface converter
+// TODO ensure valid
 func convertStruct(data interface{}) Document {
-	fmt.Println("Convert Struct:", data)
 	document := Document{}
 
 	ref := reflect.ValueOf(data)
-	fmt.Println("ref kind:", ref.Kind(), ref.Type())
 
 	for i := 0; i < ref.NumField(); i++ {
-		fmt.Println("checking:", i)
-
 		val := ref.Field(i)
 		typeVal := ref.Type().Field(i)
 		tag := typeVal.Tag
-
-		fmt.Println("Val Details:")
-		fmt.Println("\tVal Interface:", val.Interface())
-		fmt.Println("\tRereflect kind:", reflect.ValueOf(val.Interface()).Type())
-		fmt.Println("\tVal Indirect:", reflect.Indirect(val))
-
-		fmt.Println("Field Kind:", val.Kind())
-
-		fmt.Println("Field Kind ap:", reflect.Indirect(val).Kind())
 
 		switch val.Kind() {
 		case reflect.Struct:
@@ -384,33 +201,24 @@ func convertStruct(data interface{}) Document {
 
 	}
 
-	fmt.Println("End Convert Struct", document)
 	return document
 }
 
 // INTERNAL
 // For use with Convert Struct to convert slices
 func convertSlice(data interface{}) []interface{} {
-	fmt.Println("Convert Slice:", data)
 	var items []interface{}
 
 	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
-		items = append(items, reflect.ValueOf(data).Index(i))
+		items = append(items, convertPrimitive(reflect.ValueOf(data).Index(i).Interface()))
 	}
 
-	fmt.Println("End Convert Slice", items)
 	return items
 }
 
 // INTERNAL
 // For use with converters to convert int, float, double, bool, string
 func convertPrimitive(data interface{}) interface{} {
-	fmt.Println("Convert Primitive:", data)
-	//document := Document{}
-
-	fmt.Println(reflect.ValueOf(data).Type())
-
-	fmt.Println("End Convert Primitive", data)
 	return data
 }
 
