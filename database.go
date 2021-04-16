@@ -1,4 +1,4 @@
-package database
+package main
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 )
 
 type Database struct {
-	documents []document
-	indexes   []index
+	Documents []document
+	Indexes   []index
 }
 
 // INTERNAL
@@ -35,13 +35,13 @@ func (d *Database) findIndex(field string) *index {
 	if ii == -1 {
 		return nil
 	}
-	return &d.indexes[ii]
+	return &d.Indexes[ii]
 }
 
 // INTERNAL
 // Gets the index (in index array) of the index that corresponds to field
 func (d *Database) findIndexIndex(field string) int {
-	for i, index := range d.indexes {
+	for i, index := range d.Indexes {
 		if index.Field == field {
 			return i
 		}
@@ -50,20 +50,20 @@ func (d *Database) findIndexIndex(field string) int {
 }
 
 // INTERNAL
-// For use by the database to handle creation of new indexes
+// For use by the database to handle creation of new Indexes
 func (d *Database) addIndex(field string) bool {
 	if d.hasIndex(field) {
 		return false
 	}
-	d.indexes = append(d.indexes, index{field, make([]indexElement, len(d.documents))})
-	for _, document := range d.documents {
+	d.Indexes = append(d.Indexes, index{field, make([]indexElement, len(d.Documents))})
+	for _, document := range d.Documents {
 		d.addDocumentToIndex(field, &document)
 	}
 	return true
 }
 
 // INTERNAL
-// Adds the document to the databases indexes
+// Adds the document to the databases Indexes
 func (d *Database) addDocumentToIndex(field string, document *document) bool {
 	if !d.hasIndex(field) {
 		return false
@@ -74,7 +74,7 @@ func (d *Database) addDocumentToIndex(field string, document *document) bool {
 // INTERNAL
 // For handling adding to the database after the input has been parsed
 func (d *Database) addDocument(document document) {
-	d.documents = append(d.documents, document)
+	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
 		d.addDocumentToIndex(s, &document)
 	}

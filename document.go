@@ -1,4 +1,4 @@
-package database
+package main
 
 // INTERNAL
 // used to store data in the database

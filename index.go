@@ -1,6 +1,8 @@
-package database
+package main
 
-import "math"
+import (
+	"math"
+)
 
 type index struct {
 	Field string
@@ -20,7 +22,9 @@ func (i *index) findPlace(value string) int {
 	cur := -1
 	for bot != top {
 		cur = (bot+top)/2 + bot
-		if i.Index[cur].Value > value {
+		if i.Index[cur].Value == value {
+			break
+		} else if i.Index[cur].Value > value {
 			top = cur
 		} else {
 			bot = cur

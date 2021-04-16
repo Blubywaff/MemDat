@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	dat "github.com/blubywaff/memdat/database"
 	"time"
 )
 
@@ -40,13 +39,15 @@ func main() {
 
 	start := time.Now().UnixNano()
 
-	database := *dat.NewDatabase()
+	database := *NewDatabase()
 	for i := 0; i < 1; i++ {
 		database.Add(Comment{CommentStem{"xID", "xBody"}, []string{"xx", "xx"}})
 	}
 	//database.Add([]int{1, 2, 3})
-	//fmt.Println(database.Documents[0])
-	//fmt.Println(database.indexes[0].Index)
+	fmt.Println(database.Documents[0])
+	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
+	(*database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))["ObjectId"] = "0"
+	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
 
 	fmt.Println(time.Now().UnixNano() - start)
 
