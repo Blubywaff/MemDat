@@ -1,4 +1,4 @@
-package main
+package database
 
 import (
 	"fmt"
@@ -23,13 +23,13 @@ type index struct {
 }
 
 type Database struct {
-	Documents []document
-	Indexes   []index
+	documents []document
+	indexes   []index
 }
 
 // INTERNAL
 // Finds index of value in the index
-func (i index) findPlace(value string) int {
+func (i *index) findPlace(value string) int {
 	bot := 0
 	top := len(i.Index)
 	cur := -1
@@ -46,7 +46,7 @@ func (i index) findPlace(value string) int {
 
 // INTERNAL
 // checks if a specific value exists
-func (i index) contains(value string) bool {
+func (i *index) contains(value string) bool {
 	p := i.findPlace(value)
 	if p == -1 {
 		return false
@@ -57,7 +57,7 @@ func (i index) contains(value string) bool {
 // INTERNAL
 // adds document to index
 // TODO enforce unique value
-func (i index) add(document *document) bool {
+func (i *index) add(document *document) bool {
 	value := (*document)[i.Field].(string)
 	place := int(math.Max(float64(i.findPlace(value)), 0))
 	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
@@ -67,13 +67,13 @@ func (i index) add(document *document) bool {
 // INTERNAL
 // gets document which has the specific value
 // TODO needs improvement
-func (i index) findDocument(value string) *document {
+func (i *index) findDocument(value string) *document {
 	return i.Index[i.findPlace(value)].Document
 }
 
 // INTERNAL
 // Shortcut check for if an index exists
-func (d Database) hasIndex(field string) bool {
+func (d *Database) hasIndex(field string) bool {
 	return d.findIndexIndex(field) != -1
 }
 
@@ -96,13 +96,13 @@ func (d *Database) findIndex(field string) *index {
 	if ii == -1 {
 		return nil
 	}
-	return &d.Indexes[ii]
+	return &d.indexes[ii]
 }
 
 // INTERNAL
 // Gets the index (in index array) of the index that corresponds to field
 func (d *Database) findIndexIndex(field string) int {
-	for i, index := range d.Indexes {
+	for i, index := range d.indexes {
 		if index.Field == field {
 			return i
 		}
@@ -116,8 +116,8 @@ func (d *Database) addIndex(field string) bool {
 	if d.hasIndex(field) {
 		return false
 	}
-	d.Indexes = append(d.Indexes, index{field, make([]indexElement, len(d.Documents))})
-	for _, document := range d.Documents {
+	d.indexes = append(d.indexes, index{field, make([]indexElement, len(d.documents))})
+	for _, document := range d.documents {
 		d.addDocumentToIndex(field, &document)
 	}
 	return true
@@ -135,7 +135,7 @@ func (d *Database) addDocumentToIndex(field string, document *document) bool {
 // INTERNAL
 // For handling adding to the database after the input has been parsed
 func (d *Database) addDocument(document document) {
-	d.Documents = append(d.Documents, document)
+	d.documents = append(d.documents, document)
 	for s, _ := range document {
 		d.addDocumentToIndex(s, &document)
 	}
@@ -149,6 +149,21 @@ func (d *Database) generateId() string {
 		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
+}
+
+// PUBLIC
+// for use by others to add to the database
+// may change to internal to create naming and regularity among public functions
+// TODO ensure document convert succeeded
+func (d *Database) Add(data interface{}) {
+	document := convertStruct(data)
+	document["ObjectId"] = d.generateId()
+
+	d.addDocument(document)
+}
+
+func (d *Database) Get(data interface{}) {
+
 }
 
 // INTERNAL
@@ -226,15 +241,4 @@ func NewDatabase() *Database {
 	}
 	database.addIndex("ObjectId")
 	return &database
-}
-
-// PUBLIC
-// for use by others to Add to the database
-// may change to internal to create naming and regularity among public functions
-// TODO ensure document convert succeeded
-func (d *Database) Add(data interface{}) {
-	document := convertStruct(data)
-	document["ObjectId"] = d.generateId()
-
-	d.addDocument(document)
 }
