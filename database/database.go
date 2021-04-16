@@ -2,73 +2,12 @@ package database
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
-	"reflect"
 )
-
-// INTERNAL
-// used to store data in the database
-// should not be used outside this pkg
-type document map[string]interface{}
-
-type indexElement struct {
-	Document *document
-	Value    string
-}
-
-type index struct {
-	Field string
-	Index []indexElement
-}
 
 type Database struct {
 	documents []document
 	indexes   []index
-}
-
-// INTERNAL
-// Finds index of value in the index
-func (i *index) findPlace(value string) int {
-	bot := 0
-	top := len(i.Index)
-	cur := -1
-	for bot != top {
-		cur = (bot+top)/2 + bot
-		if i.Index[cur].Value > value {
-			top = cur
-		} else {
-			bot = cur
-		}
-	}
-	return cur
-}
-
-// INTERNAL
-// checks if a specific value exists
-func (i *index) contains(value string) bool {
-	p := i.findPlace(value)
-	if p == -1 {
-		return false
-	}
-	return i.Index[p].Value == value
-}
-
-// INTERNAL
-// adds document to index
-// TODO enforce unique value
-func (i *index) add(document *document) bool {
-	value := (*document)[i.Field].(string)
-	place := int(math.Max(float64(i.findPlace(value)), 0))
-	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
-	return true
-}
-
-// INTERNAL
-// gets document which has the specific value
-// TODO needs improvement
-func (i *index) findDocument(value string) *document {
-	return i.Index[i.findPlace(value)].Document
 }
 
 // INTERNAL
@@ -164,72 +103,6 @@ func (d *Database) Add(data interface{}) {
 
 func (d *Database) Get(data interface{}) {
 
-}
-
-// INTERNAL
-// Handles structs for the interface converter
-// TODO ensure valid
-func convertStruct(data interface{}) document {
-	document := document{}
-
-	ref := reflect.ValueOf(data)
-
-	for i := 0; i < ref.NumField(); i++ {
-		val := ref.Field(i)
-		typeVal := ref.Type().Field(i)
-		tag := typeVal.Tag
-
-		switch val.Kind() {
-		case reflect.Struct:
-			doc := convertStruct(val.Interface())
-			tagName := tag.Get("memdat")
-			if tagName != "" {
-				document[tagName] = doc
-				continue
-			}
-			document[typeVal.Name] = doc
-			continue
-		case reflect.Slice:
-			doc := convertSlice(val.Interface())
-			tagName := tag.Get("memdat")
-			if tagName != "" {
-				document[tagName] = doc
-				continue
-			}
-			document[typeVal.Name] = doc
-			continue
-		default:
-			doc := convertPrimitive(val.Interface())
-			tagName := tag.Get("memdat")
-			if tagName != "" {
-				document[tagName] = doc
-				continue
-			}
-			document[typeVal.Name] = doc
-			continue
-		}
-
-	}
-
-	return document
-}
-
-// INTERNAL
-// For use with Convert Struct to convert slices
-func convertSlice(data interface{}) []interface{} {
-	var items []interface{}
-
-	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
-		items = append(items, convertPrimitive(reflect.ValueOf(data).Index(i).Interface()))
-	}
-
-	return items
-}
-
-// INTERNAL
-// For use with converters to convert int, float, double, bool, string
-func convertPrimitive(data interface{}) interface{} {
-	return data
 }
 
 // PUBLIC
