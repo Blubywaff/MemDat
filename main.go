@@ -39,18 +39,16 @@ func main() {
 
 	start := time.Now().UnixNano()
 
-	database := *newDatabase()
+	database := *NewDatabase()
 	for i := 0; i < 1; i++ {
-		database.add(Comment{CommentStem{database.generateId(), database.generateId()}, []string{database.generateId(), database.generateId()}})
+		database.Add(Comment{CommentStem{database.generateId(), database.generateId()}, []string{database.generateId(), database.generateId()}})
 	}
-	//database.add([]int{1, 2, 3})
-	fmt.Println(database.Documents[0])
-	database.Documents[0]["new"] = "new"
+	//database.Add([]int{1, 2, 3})
 	fmt.Println(database.Documents[0])
 
 	fmt.Println(time.Now().UnixNano() - start)
 
-	//database.add([]string{"Hello", "21"})
+	//database.Add([]string{"Hello", "21"})
 
 	//fmt.Println(func(i interface{}) interface{} { return i }(Comment{CommentStem{"ee", "no u"}, []string{"hello", "I agree with you"}}))
 	/*
