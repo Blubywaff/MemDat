@@ -56,7 +56,7 @@ func convertSlice(data interface{}) []interface{} {
 	var items []interface{}
 
 	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
-		items = append(items, convertPrimitive(reflect.ValueOf(data).Index(i).Interface()))
+		items = append(items, convertStruct(reflect.ValueOf(data).Index(i).Interface()))
 	}
 
 	return items
