@@ -55,18 +55,19 @@ func (i *index) add(document *document) Result {
 
 // INTERNAL
 // gets document which has the specific value
-// TODO needs improvement
+// TODO needs improvement for robust against findPlace
 func (i *index) findDocument(value string) *document {
 	return i.Index[i.findPlace(value)].Document
 }
 
 // INTERNAL
 // Removes the document reference from the index
-// TODO should return Result
-func (i *index) removeDocument(dptr *document) {
+func (i *index) removeDocument(dptr *document) Result {
 	for j := 0; j < len(i.Index); j++ {
 		if i.Index[j].Document == dptr {
 			i.Index = append(i.Index[0:j], i.Index[j+1:]...)
+			return *newResult("Removed Document: "+(*dptr)["ObjectId"].(string), SUCCESS)
 		}
 	}
+	return *newResult("Did not find Document in index: "+i.Field, FAILURE)
 }

@@ -19,13 +19,21 @@ func (d *Database) hasIndex(field string) bool {
 // INTERNAL
 // Shortcut for searching for a document with known ObjectId
 func (d *Database) findDocumentById(objectId string) *document {
-	return d.findIndex("ObjectId").findDocument(objectId)
+	index := d.findIndex("ObjectId")
+	if index == nil {
+		return nil
+	}
+	return index.findDocument(objectId)
 }
 
 // INTERNAL
 // Searches for document
 func (d *Database) findDocument(key string, value string) *document {
-	return d.findIndex(key).findDocument(value)
+	index := d.findIndex(key)
+	if index == nil {
+		return nil
+	}
+	return index.findDocument(value)
 }
 
 // INTERNAL
@@ -92,24 +100,30 @@ func (d *Database) addDocument(document document) Result {
 //INTERNAL
 // Used to remove all references to a document in the database
 // Should NOT fail on documents with partial addition
-// TODO - make return Result
-func (d *Database) removeDocument(document document) {
+func (d *Database) removeDocument(document document) Result {
 	dptr := d.findDocumentById(document["ObjectId"].(string))
+	if dptr == nil {
+		return *newResult("Could not find document: "+document["ObjectId"].(string), FAILURE)
+	}
 	d.removeDocumentFromIndex(dptr)
 	for i := 0; i < len(d.Documents); i++ {
 		if d.Documents[i]["ObjectId"].(string) == document["ObjectId"].(string) {
 			d.Documents = append(d.Documents[:i], d.Documents[i+1:]...)
 		}
 	}
+	return *newResult("Removed Document: "+document["ObjectId"].(string), SUCCESS)
 }
 
 //INTERNAL
 // Used to remove all references in the indexes
-// TODO - make return Result
-func (d *Database) removeDocumentFromIndex(dptr *document) {
+func (d *Database) removeDocumentFromIndex(dptr *document) Result {
 	for _, index := range d.Indexes {
-		index.removeDocument(dptr)
+		res := index.removeDocument(dptr)
+		if res.IsError() {
+			return *newResult("Could not remove from index\n"+res.Result(), FAILURE)
+		}
 	}
+	return *newResult("Removed Document: "+(*dptr)["ObjectId"].(string), SUCCESS)
 }
 
 // INTERNAL
