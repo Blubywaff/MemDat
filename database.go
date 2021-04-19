@@ -51,32 +51,64 @@ func (d *Database) findIndexIndex(field string) int {
 
 // INTERNAL
 // For use by the database to handle creation of new Indexes
-func (d *Database) addIndex(field string) bool {
+func (d *Database) addIndex(field string) Result {
 	if d.hasIndex(field) {
-		return false
+		return *newResult("Index Already Exists", FAILURE)
 	}
 	d.Indexes = append(d.Indexes, index{field, make([]indexElement, len(d.Documents))})
 	for _, document := range d.Documents {
 		d.addDocumentToIndex(field, &document)
 	}
-	return true
+	return *newResult("Created Index: "+field, SUCCESS)
 }
 
 // INTERNAL
 // Adds the document to the databases Indexes
-func (d *Database) addDocumentToIndex(field string, document *document) bool {
+func (d *Database) addDocumentToIndex(field string, document *document) Result {
 	if !d.hasIndex(field) {
-		return false
+		return *newResult("Index of field: '"+field+"' does not exist", FAILURE)
 	}
-	return d.findIndex(field).add(document)
+	res := d.findIndex(field).add(document)
+	return res
 }
 
 // INTERNAL
 // For handling adding to the database after the input has been parsed
-func (d *Database) addDocument(document document) {
+// Should fail if the document cannot be added to one of the indexes
+func (d *Database) addDocument(document document) Result {
 	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
-		d.addDocumentToIndex(s, &document)
+		if d.hasIndex(s) {
+			indexResult := d.addDocumentToIndex(s, &document)
+			if indexResult.IsError() {
+				d.removeDocument(document)
+				return *newResult("Failed to add document to Index: "+s, FAILURE)
+			}
+		}
+	}
+	return *newResult("Added document to Database", SUCCESS)
+}
+
+//INTERNAL
+// Used to remove all references to a document in the database
+// Should NOT fail on documents with partial addition
+// TODO - make return Result
+func (d *Database) removeDocument(document document) {
+	dptr := d.findDocumentById(document["ObjectId"].(string))
+	d.removeDocumentFromIndex(dptr)
+	for i := 0; i < len(d.Documents); i++ {
+		if d.Documents[i]["ObjectId"].(string) == document["ObjectId"].(string) {
+			d.Documents = append(d.Documents[:i], d.Documents[i+1:]...)
+		}
+	}
+}
+
+//INTERNAL
+// Used to remove all references in the indexes
+// TODO - make return Result
+func (d *Database) removeDocumentFromIndex(dptr *document) {
+	for _, index := range d.Indexes {
+		index.removeDocument(dptr)
 	}
 }
 
@@ -101,6 +133,9 @@ func (d *Database) Add(data interface{}) {
 	d.addDocument(document)
 }
 
+// PUBLIC
+// for use by the end user to interact with the database
+// TODO - make this
 func (d *Database) Get(data interface{}) {
 
 }

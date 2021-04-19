@@ -46,11 +46,11 @@ func (i *index) contains(value string) bool {
 // INTERNAL
 // adds document to index
 // TODO enforce unique value
-func (i *index) add(document *document) bool {
+func (i *index) add(document *document) Result {
 	value := (*document)[i.Field].(string)
 	place := int(math.Max(float64(i.findPlace(value)), 0))
 	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
-	return true
+	return *newResult("Added document to Index: "+i.Field, SUCCESS)
 }
 
 // INTERNAL
@@ -58,4 +58,15 @@ func (i *index) add(document *document) bool {
 // TODO needs improvement
 func (i *index) findDocument(value string) *document {
 	return i.Index[i.findPlace(value)].Document
+}
+
+// INTERNAL
+// Removes the document reference from the index
+// TODO should return Result
+func (i *index) removeDocument(dptr *document) {
+	for j := 0; j < len(i.Index); j++ {
+		if i.Index[j].Document == dptr {
+			i.Index = append(i.Index[0:j], i.Index[j+1:]...)
+		}
+	}
 }
