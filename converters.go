@@ -5,10 +5,17 @@ import "reflect"
 // INTERNAL
 // Handles structs for the interface converter
 // TODO ensure valid
-func convertStruct(data interface{}) document {
+func convertStruct(data interface{}) (document, Result) {
 	document := document{}
 
 	ref := reflect.ValueOf(data)
+
+	switch ref.Kind() {
+	case reflect.Struct:
+		break
+	default:
+		return nil, *newResult("Cannot parse data", FAILURE)
+	}
 
 	for i := 0; i < ref.NumField(); i++ {
 		val := ref.Field(i)
@@ -56,7 +63,14 @@ func convertSlice(data interface{}) []interface{} {
 	var items []interface{}
 
 	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
-		items = append(items, convertStruct(reflect.ValueOf(data).Index(i).Interface()))
+		var item interface{}
+		if reflect.ValueOf(data).Kind() == reflect.Struct {
+			item = convertStruct(reflect.ValueOf(data).Index(i).Interface())
+		} else {
+			item = convertPrimitive(reflect.ValueOf(data).Index(i).Interface())
+		}
+
+		items = append(items, item)
 	}
 
 	return items

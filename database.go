@@ -89,7 +89,12 @@ func (d *Database) addDocument(document document) Result {
 		if d.hasIndex(s) {
 			indexResult := d.addDocumentToIndex(s, &document)
 			if indexResult.IsError() {
-				d.removeDocument(document)
+				res := d.removeDocument(document)
+				if res.IsError() {
+					panic("Failed to both add and remove Document. " +
+						"This SHOULD NOT EVER happen! " +
+						"This will corrupt the database")
+				}
 				return *newResult("Failed to add document to Index: "+s, FAILURE)
 			}
 		}
@@ -131,7 +136,8 @@ func (d *Database) removeDocumentFromIndex(dptr *document) Result {
 func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
-		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
+		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296),
+			rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
 }
@@ -142,6 +148,9 @@ func (d *Database) generateId() string {
 // TODO ensure document convert succeeded
 func (d *Database) Add(data interface{}) {
 	document := convertStruct(data)
+	if document == nil {
+		panic("Could not convert!")
+	}
 	document["ObjectId"] = d.generateId()
 
 	d.addDocument(document)
