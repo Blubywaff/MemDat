@@ -1,8 +1,8 @@
 package main
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 )
 
 type Database struct {
@@ -19,13 +19,21 @@ func (d *Database) hasIndex(field string) bool {
 // INTERNAL
 // Shortcut for searching for a document with known ObjectId
 func (d *Database) findDocumentById(objectId string) *document {
-	return d.findIndex("ObjectId").findDocument(objectId)
+	index := d.findIndex("ObjectId")
+	if index == nil {
+		return nil
+	}
+	return index.findDocument(objectId)
 }
 
 // INTERNAL
 // Searches for document
 func (d *Database) findDocument(key string, value string) *document {
-	return d.findIndex(key).findDocument(value)
+	index := d.findIndex(key)
+	if index == nil {
+		return nil
+	}
+	return index.findDocument(value)
 }
 
 // INTERNAL
@@ -51,34 +59,76 @@ func (d *Database) findIndexIndex(field string) int {
 
 // INTERNAL
 // For use by the database to handle creation of new Indexes
-func (d *Database) addIndex(field string) bool {
+func (d *Database) addIndex(field string) Result {
 	if d.hasIndex(field) {
-		return false
+		return *newResult("Index Already Exists", FAILURE)
 	}
 	d.Indexes = append(d.Indexes, index{field, make([]indexElement, len(d.Documents))})
 	for _, document := range d.Documents {
 		d.addDocumentToIndex(field, &document)
 	}
-	return true
+	return *newResult("Created Index: "+field, SUCCESS)
 }
 
 // INTERNAL
 // Adds the document to the databases Indexes
-func (d *Database) addDocumentToIndex(field string, document *document) bool {
+func (d *Database) addDocumentToIndex(field string, document *document) Result {
 	if !d.hasIndex(field) {
-		return false
+		return *newResult("Index of field: '"+field+"' does not exist", FAILURE)
 	}
-	return d.findIndex(field).add(document)
+	res := d.findIndex(field).add(document)
+	return res
 }
 
 // INTERNAL
 // For handling adding to the database after the input has been parsed
-func (d *Database) addDocument(document document) {
+// Should fail if the document cannot be added to one of the indexes
+func (d *Database) addDocument(document document) Result {
 	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
-		fmt.Println("S:", s)
-		d.addDocumentToIndex(s, &document)
+		if d.hasIndex(s) {
+			indexResult := d.addDocumentToIndex(s, &document)
+			if indexResult.IsError() {
+				res := d.removeDocument(document)
+				if res.IsError() {
+					panic("Failed to both add and remove Document. " +
+						"This SHOULD NOT EVER happen! " +
+						"This will corrupt the database")
+				}
+				return *newResult("Failed to add document to Index: "+s, FAILURE)
+			}
+		}
 	}
+	return *newResult("Added document to Database", SUCCESS)
+}
+
+//INTERNAL
+// Used to remove all references to a document in the database
+// Should NOT fail on documents with partial addition
+func (d *Database) removeDocument(document document) Result {
+	dptr := d.findDocumentById(document["ObjectId"].(string))
+	if dptr == nil {
+		return *newResult("Could not find document: "+document["ObjectId"].(string), FAILURE)
+	}
+	d.removeDocumentFromIndex(dptr)
+	for i := 0; i < len(d.Documents); i++ {
+		if d.Documents[i]["ObjectId"].(string) == document["ObjectId"].(string) {
+			d.Documents = append(d.Documents[:i], d.Documents[i+1:]...)
+		}
+	}
+	return *newResult("Removed Document: "+document["ObjectId"].(string), SUCCESS)
+}
+
+//INTERNAL
+// Used to remove all references in the indexes
+func (d *Database) removeDocumentFromIndex(dptr *document) Result {
+	for _, index := range d.Indexes {
+		res := index.removeDocument(dptr)
+		if res.IsError() {
+			return *newResult("Could not remove from index\n"+res.Result(), FAILURE)
+		}
+	}
+	return *newResult("Removed Document: "+(*dptr)["ObjectId"].(string), SUCCESS)
 }
 
 // INTERNAL
@@ -86,14 +136,8 @@ func (d *Database) addDocument(document document) {
 func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
-		key := [8]byte{}
-		_, err := rand.Read(key[:])
-		if err != nil {
-			continue
-		}
-
-		id = fmt.Sprintf("%08x", key)
-		//id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
+		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296),
+			rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
 }
@@ -101,16 +145,25 @@ func (d *Database) generateId() string {
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
-// TODO ensure document convert succeeded
-func (d *Database) Add(data interface{}) {
-	document := convertStruct(data)
+func (d *Database) Add(data interface{}) Result {
+	document, res := convertStruct(data)
+	if res.IsError() {
+		return *newResult("Failed to convert: "+res.Result(), FAILURE)
+	}
+	if document == nil {
+		panic("Could not convert!")
+	}
+
 	document["ObjectId"] = d.generateId()
 
-	fmt.Println("ObjId:", document["ObjectId"])
-
 	d.addDocument(document)
+
+	return *newResult("Added to database", SUCCESS)
 }
 
+// PUBLIC
+// for use by the end user to interact with the database
+// TODO - make this
 func (d *Database) Get(data interface{}) {
 
 }
