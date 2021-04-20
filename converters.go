@@ -24,7 +24,10 @@ func convertStruct(data interface{}) (document, Result) {
 
 		switch val.Kind() {
 		case reflect.Struct:
-			doc := convertStruct(val.Interface())
+			doc, cres := convertStruct(val.Interface())
+			if cres.IsError() {
+				return nil, *newResult("Failed on sub struct: "+cres.Result(), FAILURE)
+			}
 			tagName := tag.Get("memdat")
 			if tagName != "" {
 				document[tagName] = doc
@@ -33,7 +36,10 @@ func convertStruct(data interface{}) (document, Result) {
 			document[typeVal.Name] = doc
 			continue
 		case reflect.Slice:
-			doc := convertSlice(val.Interface())
+			doc, cres := convertSlice(val.Interface())
+			if cres.IsError() {
+				return nil, *newResult("Failed on slice: "+cres.Result(), FAILURE)
+			}
 			tagName := tag.Get("memdat")
 			if tagName != "" {
 				document[tagName] = doc
@@ -54,18 +60,22 @@ func convertStruct(data interface{}) (document, Result) {
 
 	}
 
-	return document
+	return document, *newResult("Converted Struct", SUCCESS)
 }
 
 // INTERNAL
 // For use with Convert Struct to convert slices
-func convertSlice(data interface{}) []interface{} {
+func convertSlice(data interface{}) ([]interface{}, Result) {
 	var items []interface{}
 
 	for i := 0; i < reflect.ValueOf(data).Len(); i++ {
 		var item interface{}
 		if reflect.ValueOf(data).Kind() == reflect.Struct {
-			item = convertStruct(reflect.ValueOf(data).Index(i).Interface())
+			var cres Result
+			item, cres = convertStruct(reflect.ValueOf(data).Index(i).Interface())
+			if cres.IsError() {
+				return nil, *newResult("Subconvert failed on element: "+string(rune(i)), FAILURE)
+			}
 		} else {
 			item = convertPrimitive(reflect.ValueOf(data).Index(i).Interface())
 		}
@@ -73,7 +83,7 @@ func convertSlice(data interface{}) []interface{} {
 		items = append(items, item)
 	}
 
-	return items
+	return items, *newResult("Converted Slice", SUCCESS)
 }
 
 // INTERNAL

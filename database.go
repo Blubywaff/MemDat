@@ -145,15 +145,20 @@ func (d *Database) generateId() string {
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
-// TODO ensure document convert succeeded
-func (d *Database) Add(data interface{}) {
-	document := convertStruct(data)
+func (d *Database) Add(data interface{}) Result {
+	document, res := convertStruct(data)
+	if res.IsError() {
+		return *newResult("Failed to convert: "+res.Result(), FAILURE)
+	}
 	if document == nil {
 		panic("Could not convert!")
 	}
+
 	document["ObjectId"] = d.generateId()
 
 	d.addDocument(document)
+
+	return *newResult("Added to database", SUCCESS)
 }
 
 // PUBLIC
