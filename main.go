@@ -40,7 +40,7 @@ func main() {
 	start := time.Now().UnixNano()
 
 	database := *NewDatabase()
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 100; i++ {
 		database.Add(Comment{CommentStem{"xID", "xBody"}, []string{"xx", "xx"}})
 	}
 	//database.Add([]int{1, 2, 3})
@@ -48,6 +48,10 @@ func main() {
 	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
 	(*database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))["ObjectId"] = "0"
 	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
+	fmt.Println(database.Indexes[0].Index)
+	for i, _ := range database.findIndex("ObjectId").Index {
+		fmt.Println(database.Indexes[0].Index[i].Value)
+	}
 
 	fmt.Println(time.Now().UnixNano() - start)
 

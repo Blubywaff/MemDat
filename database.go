@@ -1,8 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 )
 
 type Database struct {
@@ -76,6 +76,7 @@ func (d *Database) addDocumentToIndex(field string, document *document) bool {
 func (d *Database) addDocument(document document) {
 	d.Documents = append(d.Documents, document)
 	for s, _ := range document {
+		fmt.Println("S:", s)
 		d.addDocumentToIndex(s, &document)
 	}
 }
@@ -85,7 +86,14 @@ func (d *Database) addDocument(document document) {
 func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
-		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
+		key := [8]byte{}
+		_, err := rand.Read(key[:])
+		if err != nil {
+			continue
+		}
+
+		id = fmt.Sprintf("%08x", key)
+		//id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
 	}
 	return id
 }
@@ -97,6 +105,8 @@ func (d *Database) generateId() string {
 func (d *Database) Add(data interface{}) {
 	document := convertStruct(data)
 	document["ObjectId"] = d.generateId()
+
+	fmt.Println("ObjId:", document["ObjectId"])
 
 	d.addDocument(document)
 }

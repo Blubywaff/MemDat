@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math"
 )
 
@@ -21,13 +22,16 @@ func (i *index) findPlace(value string) int {
 	top := len(i.Index)
 	cur := -1
 	for bot != top {
-		cur = (bot+top)/2 + bot
-		if i.Index[cur].Value == value {
+		cur = (top-bot)/2 + bot
+		fmt.Println(cur, top, bot)
+		if top <= bot {
+			break
+		} else if i.Index[cur].Value == value {
 			break
 		} else if i.Index[cur].Value > value {
-			top = cur
+			top = cur - 1
 		} else {
-			bot = cur
+			bot = cur + 1
 		}
 	}
 	return cur
@@ -48,8 +52,16 @@ func (i *index) contains(value string) bool {
 // TODO enforce unique value
 func (i *index) add(document *document) bool {
 	value := (*document)[i.Field].(string)
+	if i.contains(value) {
+		return false
+	}
 	place := int(math.Max(float64(i.findPlace(value)), 0))
+	fmt.Println("pint:", place, i.Index[0:place], i.Index[place:])
+	fmt.Println("1:", i.Index)
+	temp := append((*i).Index[0:place], indexElement{document, value})
+	fmt.Println("a:", temp, i.Index)
 	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
+	fmt.Println("2:", i.Index)
 	return true
 }
 
