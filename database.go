@@ -136,8 +136,7 @@ func (d *Database) removeDocumentFromIndex(dptr *document) Result {
 func (d *Database) generateId() string {
 	id := ""
 	for id == "" || d.findIndex("ObjectId").contains(id) {
-		id = fmt.Sprintf("%08x%08x%08x%08x", rand.Intn(4294967296),
-			rand.Intn(4294967296), rand.Intn(4294967296), rand.Intn(4294967296))
+		id = fmt.Sprintf("%08x", rand.Intn(4294967296))
 	}
 	return id
 }

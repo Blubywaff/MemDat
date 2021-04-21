@@ -23,7 +23,6 @@ func (i *index) findPlace(value string) int {
 	cur := -1
 	for bot != top {
 		cur = (top-bot)/2 + bot
-		fmt.Println(cur, top, bot)
 		if top <= bot {
 			break
 		} else if i.Index[cur].Value == value {
@@ -50,10 +49,10 @@ func (i *index) contains(value string) bool {
 // INTERNAL
 // adds document to index
 // TODO enforce unique value
-func (i *index) add(document *document) bool {
+func (i *index) add(document *document) Result {
 	value := (*document)[i.Field].(string)
 	if i.contains(value) {
-		return false
+		return *newResult("Only Uniques are allowed", FAILURE)
 	}
 	place := int(math.Max(float64(i.findPlace(value)), 0))
 	fmt.Println("pint:", place, i.Index[0:place], i.Index[place:])
@@ -62,7 +61,7 @@ func (i *index) add(document *document) bool {
 	fmt.Println("a:", temp, i.Index)
 	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
 	fmt.Println("2:", i.Index)
-	return true
+	return *newResult("Added document to index", SUCCESS)
 }
 
 // INTERNAL
