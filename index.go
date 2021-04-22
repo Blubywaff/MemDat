@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -48,27 +47,24 @@ func (i *index) contains(value string) bool {
 
 // INTERNAL
 // adds document to index
-// TODO enforce unique value
 func (i *index) add(document *document) Result {
 	value := (*document)[i.Field].(string)
 	if i.contains(value) {
 		return *newResult("Only Uniques are allowed", FAILURE)
 	}
 	place := int(math.Max(float64(i.findPlace(value)), 0))
-	fmt.Println("pint:", place, i.Index[0:place], i.Index[place:])
-	fmt.Println("1:", i.Index)
-	temp := append((*i).Index[0:place], indexElement{document, value})
-	fmt.Println("a:", temp, i.Index)
-	i.Index = append(append(i.Index[0:place], indexElement{document, value}), i.Index[place:]...)
-	fmt.Println("2:", i.Index)
+	i.Index = append(append(append([]indexElement{}, i.Index[0:place]...), indexElement{document, value}), append([]indexElement{}, i.Index[place:]...)...)
 	return *newResult("Added document to index", SUCCESS)
 }
 
 // INTERNAL
 // gets document which has the specific value
-// TODO needs improvement for robust against findPlace
 func (i *index) findDocument(value string) *document {
-	return i.Index[i.findPlace(value)].Document
+	place := i.findPlace(value)
+	if place == -1 {
+		return nil
+	}
+	return i.Index[place].Document
 }
 
 // INTERNAL
