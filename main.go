@@ -40,21 +40,26 @@ func main() {
 	start := time.Now().UnixNano()
 
 	database := *NewDatabase()
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 50; i++ {
 		var cm *Comment
 		cm = &Comment{CommentStem{"xID" + database.generateId(), "xBody"}, []string{database.generateId(), "xx"}}
 		fmt.Println("ID--", cm.Replies[0])
 		database.Add(*cm)
 	}
 	//database.Add([]int{1, 2, 3})
-	fmt.Println(database.Documents[0])
-	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
-	(*database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))["ObjectId"] = "0"
-	fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
-	fmt.Println(database.Indexes[0].Index)
+	//fmt.Println(database.Documents[0])
+	//fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
+	//(*database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))["ObjectId"] = "0"
+	//fmt.Println(database.Indexes[0].findDocument(database.Documents[0]["ObjectId"].(string)))
+	//fmt.Println(database.Indexes[0].Index)
 	for i, _ := range database.findIndex("ObjectId").Index {
-		fmt.Println(database.Indexes[0].Index[i].Value, (*database.Indexes[0].Index[i].Document)["Replies"])
+		obj := (*database.Indexes[0].Index[i].Document)["ObjectId"]
+		fmt.Println(database.Indexes[0].Index[i].Value, (*database.Indexes[0].Index[i].Document)["ObjectId"], database.Indexes[0].findPlace(obj.(string)), (*database.Indexes[0].Index[database.Indexes[0].findPlace(obj.(string))].Document)["ObjectId"])
 	}
+
+	fmt.Println(database.Indexes[0].findPlace("5"))
+
+	fmt.Println(database.Indexes[0])
 
 	fmt.Println(time.Now().UnixNano() - start)
 

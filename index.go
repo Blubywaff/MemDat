@@ -20,26 +20,22 @@ func (i *index) findPlace(value string) int {
 	bot := 0
 	top := len(i.Index)
 	cur := -1
-	for bot != top {
-		cur = (top-bot)/2 + bot
-		if top <= bot {
-			break
-		} else if i.Index[cur].Value == value {
-			break
-		} else if i.Index[cur].Value > value {
-			top = cur - 1
-		} else {
+	for bot < top {
+		cur = (bot + top) / 2
+		if i.Index[cur].Value < value {
 			bot = cur + 1
+		} else {
+			top = cur
 		}
 	}
-	return cur
+	return bot
 }
 
 // INTERNAL
 // checks if a specific value exists
 func (i *index) contains(value string) bool {
 	p := i.findPlace(value)
-	if p == -1 {
+	if p < 0 || p >= len(i.Index) {
 		return false
 	}
 	return i.Index[p].Value == value
