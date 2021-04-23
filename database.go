@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 )
 
@@ -27,13 +28,24 @@ func (d *Database) findDocumentById(objectId string) *document {
 }
 
 // INTERNAL
-// Searches for document
+// Searches for document from indexes
 func (d *Database) findDocument(key string, value string) *document {
 	index := d.findIndex(key)
 	if index == nil {
 		return nil
 	}
 	return index.findDocument(value)
+}
+
+// INTERNAL
+// Searches for document not in index
+func (d *Database) findDocumentNoIndex(key string, value interface{}) *document {
+	for i, doc := range d.Documents {
+		if doc[key] == value {
+			return &doc
+		}
+	}
+	return nil
 }
 
 // INTERNAL
@@ -141,6 +153,27 @@ func (d *Database) generateId() string {
 	return id
 }
 
+// INTERNAL
+// Finds all document(s) that match selection criteria
+func (d *Database) findDocuments(selection map[string]interface{}) []*document {
+	ind := d.findIndex("ObjectId")
+	var docs []*document
+
+	for _, element := range ind.Index {
+		docs = append(docs, element.Document)
+	}
+
+	for s, i := range selection {
+		for i2, doc := range docs {
+			if !doc.matches(s, i) {
+				docs = append(append([]*document{}, docs[0:i2]...), append([]*document{}, docs[i2:]...)...)
+			}
+		}
+	}
+
+	return docs
+}
+
 // PUBLIC
 // for use by others to add to the database
 // may change to internal to create naming and regularity among public functions
@@ -162,8 +195,28 @@ func (d *Database) Add(data interface{}) Result {
 
 // PUBLIC
 // for use by the end user to interact with the database
+func (d *Database) Get(field string, value interface{}) interface{} {
+	str, ok := value.(string)
+
+	if !ok {
+		return d.findDocumentNoIndex(field, value)
+	}
+
+	return d.findDocument(field, str)
+
+}
+
+// PUBLIC
+// This is the func that should be used by other packages to get documents
 // TODO - make this
-func (d *Database) Get(data interface{}) {
+func (d *Database) Read(selection map[string]interface{}, output interface{}) Result {
+
+}
+
+// PUBLIC
+// for use by end user to interact with the database
+// TODO - make this
+func (d *Database) Operate(selection map[string]interface{}, update map[string]interface{}) Result {
 
 }
 
