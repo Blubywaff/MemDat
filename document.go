@@ -16,5 +16,5 @@ type Operation struct {
 // INTERNAL
 // Used by database to select documents
 func (d *document) matches(field string, value interface{}) bool {
-	return (&d)[field] == value
+	return (*d)[field] == value
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 )
 
@@ -40,7 +39,7 @@ func (d *Database) findDocument(key string, value string) *document {
 // INTERNAL
 // Searches for document not in index
 func (d *Database) findDocumentNoIndex(key string, value interface{}) *document {
-	for i, doc := range d.Documents {
+	for _, doc := range d.Documents {
 		if doc[key] == value {
 			return &doc
 		}
@@ -164,9 +163,22 @@ func (d *Database) findDocuments(selection map[string]interface{}) []*document {
 	}
 
 	for s, i := range selection {
-		for i2, doc := range docs {
-			if !doc.matches(s, i) {
-				docs = append(append([]*document{}, docs[0:i2]...), append([]*document{}, docs[i2:]...)...)
+		done := true
+		for done {
+			for i2, doc := range docs {
+				done = false
+				if !doc.matches(s, i) {
+					done = true
+					fmt.Println("Match:", s, i, (*doc)[s], (*doc)[s] == i)
+					if i2 > len(docs) {
+						break
+					}
+					if i2 == len(docs) {
+						docs = append([]*document{}, docs[0:i2]...)
+						continue
+					}
+					docs = append(append([]*document{}, docs[0:i2]...), append([]*document{}, docs[i2+1:]...)...)
+				}
 			}
 		}
 	}
@@ -217,7 +229,7 @@ func (d *Database) Read(selection map[string]interface{}, output interface{}) Re
 // for use by end user to interact with the database
 // TODO - make this
 func (d *Database) Operate(selection map[string]interface{}, update map[string]interface{}) Result {
-
+	return *newResult("FUNCTION NOT IMPLEMENTED YET", NO_STATUS)
 }
 
 // PUBLIC
