@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"reflect"
 )
 
 type Database struct {
@@ -220,9 +221,43 @@ func (d *Database) Get(field string, value interface{}) interface{} {
 
 // PUBLIC
 // This is the func that should be used by other packages to get documents
-// TODO - make this
-func (d *Database) Read(selection map[string]interface{}, output interface{}) Result {
+// TODO - make this - iterative indexing
+func (d *Database) Read(selection map[string]interface{}, output interface{}) *Result {
+	documents := d.findDocuments(selection)
 
+	fmt.Println(selection)
+
+	if len(documents) > 1 {
+		return newResult("Selection Return Multiple Documents!", FAILURE)
+	}
+
+	kind := reflect.ValueOf(output).Kind()
+	if kind != reflect.Struct {
+		return newResult("Output is not Struct!", FAILURE)
+	}
+
+	val := reflect.ValueOf(output)
+
+	currentField := ""
+
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		typeVal := val.Type().Field(i)
+		tag := typeVal.Tag
+		name := tag.Get("memdat")
+		if name == "" {
+			name = typeVal.Name
+		}
+		currentField = name
+		if field.Kind() == reflect.Struct {
+			fmt.Println(currentField)
+
+		}
+	}
+
+	fmt.Println("KinTip", kind.String(), val.Type())
+
+	return newResult(kind.String(), NO_STATUS)
 }
 
 // PUBLIC
