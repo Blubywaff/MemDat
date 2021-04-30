@@ -5,7 +5,8 @@ import (
 )
 
 type Comment struct {
-	CommentStem
+	ID      string   `json:"ID" bson:"ID"`
+	Body    string   `json:"Body" bson:"Body"`
 	Replies []string `json:"Replies" bson:"Replies" memdat:"Replies"`
 }
 
@@ -41,7 +42,7 @@ func main() {
 	database := *NewDatabase()
 	for i := 0; i < 50; i++ {
 		var cm *Comment
-		cm = &Comment{CommentStem{"xID" + database.generateId(), "xBody"}, []string{database.generateId(), "xx"}}
+		cm = &Comment{"xID" + database.generateId(), "xBody", []string{database.generateId(), "xx"}}
 		//fmt.Println("ID--", cm.Replies[0])
 		database.Add(*cm)
 	}
@@ -60,7 +61,9 @@ func main() {
 
 	//fmt.Println(database.Indexes[0])
 
-	fmt.Println(database.Read(map[string]interface{}{"ObjectId": database.Indexes[0].Index[0].Value}, *new(Comment)).Result())
+	out, res := database.Read(map[string]interface{}{"ObjectId": database.Indexes[0].Index[0].Value}, *new(Comment))
+
+	fmt.Println(out, res.Result())
 
 	fmt.Println("0796a710" == "090ec04f")
 

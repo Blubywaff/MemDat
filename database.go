@@ -170,7 +170,7 @@ func (d *Database) findDocuments(selection map[string]interface{}) []*document {
 				done = false
 				if !doc.matches(s, i) {
 					done = true
-					fmt.Println("Match:", s, i, (*doc)[s], (*doc)[s] == i)
+					//fmt.Println("Match:", s, i, (*doc)[s], (*doc)[s] == i)
 					if i2 > len(docs) {
 						break
 					}
@@ -222,24 +222,75 @@ func (d *Database) Get(field string, value interface{}) interface{} {
 // PUBLIC
 // This is the func that should be used by other packages to get documents
 // TODO - make this - iterative indexing
-func (d *Database) Read(selection map[string]interface{}, output interface{}) *Result {
+func (d *Database) Read(selection map[string]interface{}, input interface{}) (interface{}, *Result) {
 	documents := d.findDocuments(selection)
 
 	fmt.Println(selection)
 
 	if len(documents) > 1 {
-		return newResult("Selection Return Multiple Documents!", FAILURE)
+		return nil, newResult("Selection Return Multiple Documents!", FAILURE)
 	}
 
-	kind := reflect.ValueOf(output).Kind()
+	kind := reflect.ValueOf(input).Kind()
 	if kind != reflect.Struct {
-		return newResult("Output is not Struct!", FAILURE)
+		return nil, newResult("Output is not Struct!", FAILURE)
 	}
 
-	val := reflect.ValueOf(output)
+	val := reflect.ValueOf(input)
 
+	var output interface{} = reflect.New(val.Type()).Interface()
+
+	fmt.Println(reflect.TypeOf(output), reflect.TypeOf(input), val.Type())
+
+	activeDoc := append([]*document{}, documents[0])
+	activeOut := append([]*interface{}{}, &output)
+
+	var lastField []int = []int{0}
+	for len(activeOut) != 0 {
+		didTerminate := true
+		// Get value of current place in output structure
+		val = reflect.Indirect(reflect.ValueOf(*activeOut[len(activeOut)-1]))
+		fmt.Println("Val", *activeOut[len(activeOut)-1], val.Type(), reflect.Indirect(val).Type())
+		for i := lastField[len(lastField)-1]; i < val.NumField(); i++ {
+			lastField[len(lastField)-1] = i + 1
+			field := val.Field(i)
+			typeVal := val.Type().Field(i)
+			tag := typeVal.Tag
+			name := tag.Get("memdat")
+			if name == "" {
+				name = typeVal.Name
+			}
+			if field.Kind() == reflect.Struct {
+				var e interface{} = field.Interface()
+				var d document = (*activeDoc[len(activeDoc)-1])[name].(document)
+				activeOut = append(activeOut, &e)
+				activeDoc = append(activeDoc, &d)
+				lastField = append(lastField, 0)
+				didTerminate = false
+				break
+			} else if field.Kind() == reflect.Slice {
+				// TODO - slice parse
+				fmt.Println("Slice Parse:", field.Interface())
+				var e interface{} = field.Interface()
+				var d interface{} = (*activeDoc[len(activeDoc)-1])[name]
+				handleSlice(e, d)
+			}
+			if field.CanSet() {
+				field.Set(reflect.ValueOf((*activeDoc[len(activeDoc)-1])[name]))
+			} else {
+				fmt.Println("Cannot Set", name, lastField)
+			}
+		}
+		if didTerminate {
+			activeOut = append([]*interface{}{}, activeOut[:len(activeOut)-1]...)
+			activeDoc = append([]*document{}, activeDoc[:len(activeDoc)-1]...)
+			lastField = append([]int{}, lastField[:len(lastField)-1]...)
+
+		}
+	}
+
+	/* Dunno abt this part
 	currentField := ""
-
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Field(i)
 		typeVal := val.Type().Field(i)
@@ -249,15 +300,31 @@ func (d *Database) Read(selection map[string]interface{}, output interface{}) *R
 			name = typeVal.Name
 		}
 		currentField = name
+		field.Set(reflect.ValueOf((*activeDoc[len(activeDoc)-1])[currentField]))
 		if field.Kind() == reflect.Struct {
-			fmt.Println(currentField)
+			var doc document
+			doc = field.Interface().(document)
+			activeDoc = append(activeDoc, &doc)
 
 		}
 	}
+	*/
 
-	fmt.Println("KinTip", kind.String(), val.Type())
+	return output, newResult("Translated Document", SUCCESS)
+}
 
-	return newResult(kind.String(), NO_STATUS)
+// INTERNAL
+// helper for read method for slices
+// TODO - make this
+func handleSlice(e interface{}, s interface{}) {
+	inVal := reflect.ValueOf(s)
+	outVal := reflect.ValueOf(e)
+	fmt.Println("VALS-OH!", inVal.Type(), outVal.Type())
+	// TODO use makeslice to define specific and known
+	for i := 0; i < inVal.NumField(); i++ {
+		outVal.Index(i).Set(inVal.Index(i))
+	}
+	fmt.Println("OUT", outVal.Interface())
 }
 
 // PUBLIC
