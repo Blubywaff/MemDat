@@ -63,7 +63,7 @@ func main() {
 
 	out, res := database.Read(map[string]interface{}{"ObjectId": database.Indexes[0].Index[0].Value}, *new(Comment))
 
-	fmt.Println(out, res.Result())
+	fmt.Println(out.(Comment), res.Result())
 
 	fmt.Println("0796a710" == "090ec04f")
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -231,6 +232,21 @@ func (d *Database) Read(selection map[string]interface{}, input interface{}) (in
 		return nil, newResult("Selection Return Multiple Documents!", FAILURE)
 	}
 
+	fmt.Println("EE")
+	fmt.Println(reflect.TypeOf((*documents[0])["Replies"]))
+	fmt.Println(reflect.TypeOf((*documents[0])["Replies"].([]interface{})[0]))
+	fmt.Println("EE")
+
+	js, _ := json.Marshal(documents[0])
+
+	in := reflect.New(reflect.TypeOf(input)).Interface()
+
+	out := json.Unmarshal(js, &in)
+
+	fmt.Println(string(js), out)
+
+	return input, newResult("Fallback to JSON", NO_STATUS)
+
 	kind := reflect.ValueOf(input).Kind()
 	if kind != reflect.Struct {
 		return nil, newResult("Output is not Struct!", FAILURE)
@@ -270,6 +286,7 @@ func (d *Database) Read(selection map[string]interface{}, input interface{}) (in
 				break
 			} else if field.Kind() == reflect.Slice {
 				// TODO - slice parse
+				defer fmt.Println("DFR:", output)
 				fmt.Println("Slice Parse:", field.Interface())
 				var e interface{} = field.Interface()
 				var d interface{} = (*activeDoc[len(activeDoc)-1])[name]
@@ -315,17 +332,29 @@ func (d *Database) Read(selection map[string]interface{}, input interface{}) (in
 
 // INTERNAL
 // helper for read method for slices
+// s input data -- e output type
 // TODO - make this
 func handleSlice(e interface{}, s interface{}) {
 	inVal := reflect.ValueOf(s)
 	outVal := reflect.ValueOf(e)
 	fmt.Println("VALS-OH!", inVal.Type(), outVal.Type())
+	outVal = reflect.MakeSlice(outVal.Type(), inVal.Len(), inVal.Len())
+	fmt.Println(outVal.Type())
 	// TODO use makeslice to define specific and known
-	for i := 0; i < inVal.NumField(); i++ {
+	for i := 0; i < inVal.Len(); i++ {
+		switch outVal.Elem().Kind() {
+		case reflect.Interface:
+			// TODO
+			continue
+		case reflect.Struct:
+
+		}
 		outVal.Index(i).Set(inVal.Index(i))
 	}
 	fmt.Println("OUT", outVal.Interface())
 }
+
+// TODO - make this for use by the slice handler
 
 // PUBLIC
 // for use by end user to interact with the database
